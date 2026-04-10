@@ -2,128 +2,338 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>概算見積ツール</title>
+<title>見積書</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 <style>
-body { font-family: sans-serif; padding: 20px; }
-input, select, button { width: 100%; padding: 10px; margin-top: 10px; }
-.result { margin-top: 20px; font-size: 18px; font-weight: bold; }
+body{
+  font-family:"Meiryo","Yu Gothic",sans-serif;
+  background:#eee;
+  margin:0;
+}
+
+.input-area{
+  background:#fff;
+  padding:15px;
+}
+
+label{
+  display:block;
+  margin-top:10px;
+  font-weight:bold;
+}
+
+input,select{
+  width:100%;
+  padding:6px;
+}
+
+/* ★左寄せ固定（ここが重要） */
+.sheet{
+  width:210mm;
+  margin:0;              /* ←中央寄せやめた */
+  padding:12mm;
+  background:#fff;
+  box-sizing:border-box;
+}
+
+/* レイアウト */
+.header{
+  display:flex;
+  justify-content:space-between;
+}
+
+.title{
+  text-align:center;
+  font-size:24px;
+  font-weight:bold;
+  margin:10px 0;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+}
+
+th,td{
+  border:1px solid #000;
+  padding:6px;
+}
+
+.right{text-align:right;}
+.total{font-size:18px;font-weight:bold;}
+.small{font-size:12px;}
 </style>
 </head>
+
 <body>
 
-<h2>概算見積ツール</h2>
+<div class="input-area">
 
-<label>ステーション端末台数</label>
-<input type="number" id="station" value="0">
+<label>病院名</label>
+<input id="hospital">
+
+<label>営業担当者</label>
+<input id="sales">
+
+<label>ステーション台数</label>
+<input id="station" type="number" value="0">
 
 <label>タブレット台数</label>
-<input type="number" id="tablet" value="0">
+<input id="tablet" type="number" value="0">
 
 <label>ベッドナビ台数</label>
-<input type="number" id="bednavi" value="0">
+<input id="bednavi" type="number" value="0">
 
 <label>眠りSCAN台数</label>
-<input type="number" id="scan" value="0">
+<input id="scan" type="number" value="0">
 
-<label>接続ボックス台数</label>
-<input type="number" id="box" value="0">
+<label>接続BOX台数</label>
+<input id="box" type="number" value="0">
+
+<label>NFCカード枚数</label>
+<input id="nfc" type="number" value="0">
 
 <label>電子カルテ連携</label>
-<select id="emr">
-<option value="0">ナシ</option>
-<option value="5000000">アリ</option>
-</select>
+<select id="emr"><option value="0">なし</option><option value="5000000">あり</option></select>
 
 <label>ナースコール連携</label>
-<select id="nurse">
-<option value="0">ナシ</option>
-<option value="600000">アリ</option>
+<select id="nurse"><option value="0">なし</option><option value="600000">あり</option></select>
+
+<label>サーバ構成</label>
+<select id="server">
+<option value="10300000">物理</option>
+<option value="5000000">仮想</option>
+<option value="18600000">冗長</option>
 </select>
 
-<label>サーバ環境</label>
-<select id="server">
-<option value="10300000">物理（830万＋ライセンス200万）</option>
-<option value="5000000">仮想（300万＋ライセンス200万）</option>
-<option value="18600000">物理冗長（1660万＋ライセンス200万）</option>
-</select>
+<label>ウイルスソフト</label>
+<select id="virus"><option value="0">なし</option><option value="5000000">あり</option></select>
+
+<label>保守回線</label>
+<select id="line"><option value="0">なし</option><option value="130000">あり</option></select>
 
 <label>保守費（月額）</label>
 <select id="maintenance">
-<option value="500000">500,000</option>
-<option value="350000">350,000</option>
-<option value="200000">200,000</option>
-<option value="100000">100,000</option>
-<option value="50000">50,000</option>
+<option value="500000">500000</option>
+<option value="350000">350000</option>
+<option value="200000">200000</option>
+<option value="100000">100000</option>
+<option value="50000">50000</option>
 </select>
 
-<label>ウィルスソフト</label>
-<select id="virus">
-<option value="0">ナシ</option>
-<option value="5000000">アリ</option>
-</select>
+<label>支店</label>
+<select id="branch" onchange="setBranch()"></select>
 
-<label>NFCカード枚数</label>
-<input type="number" id="nfc" value="0">
+<label>支店長</label>
+<input id="manager">
 
-<label>保守回線新設</label>
-<select id="line">
-<option value="0">ナシ</option>
-<option value="130000">アリ</option>
-</select>
+<div id="branchInfo" class="small"></div>
 
+<br>
 <button onclick="calc()">計算</button>
+<button onclick="makePDF()">PDF</button>
 
-<div class="result" id="result"></div>
+</div>
+
+<div id="estimate" class="sheet"></div>
 
 <script>
-function calc() {
 
-  let station = Number(document.getElementById("station").value);
-  let tablet = Number(document.getElementById("tablet").value);
-  let bednavi = Number(document.getElementById("bednavi").value);
-  let scan = Number(document.getElementById("scan").value);
-  let box = Number(document.getElementById("box").value);
-
-  let emr = Number(document.getElementById("emr").value);
-  let nurse = Number(document.getElementById("nurse").value);
-  let server = Number(document.getElementById("server").value);
-  let maintenance = Number(document.getElementById("maintenance").value);
-  let virus = Number(document.getElementById("virus").value);
-  let nfc = Number(document.getElementById("nfc").value);
-  let line = Number(document.getElementById("line").value);
-
-  // 本体費用
-  let totalBase =
-    station * 300000 +
-    tablet * 100000 +
-    bednavi * 30000 +
-    scan * 50000 +
-    box * 5000 +
-    emr +
-    nurse +
-    server +
-    virus +
-    (nfc * 300) +
-    line;
-
-  // ライセンス費用
-  let license =
-    station * 50000 +
-    tablet * 35000 +
-    bednavi * 30000;
-
-  // 保守費（5年）
-  let maintenanceTotal = maintenance * 60;
-
-  // 利益45%乗せ
-  let total = Math.round((totalBase + license) * 1.45);
-
-  document.getElementById("result").innerHTML =
-    "総額（利益45%込）：" + total.toLocaleString() + " 円<br>" +
-    "ライセンス費用：" + license.toLocaleString() + " 円<br>" +
-    "保守費（5年/60か月）：" + maintenanceTotal.toLocaleString() + " 円";
+// ★見積番号（IBS-HHMMSSDD）
+function getEstimateNumber(){
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,"0");
+  const mm = String(now.getMinutes()).padStart(2,"0");
+  const ss = String(now.getSeconds()).padStart(2,"0");
+  const dd = String(now.getDate()).padStart(2,"0");
+  return `IBS-${hh}${mm}${ss}${dd}`;
 }
+
+// 支店
+const branches={
+"札幌支店":{zip:"060-0062",addr:"札幌市中央区南2条西13丁目318番地11",tel:"011-271-1181",fax:"011-271-7282",manager:"北嶋 孝幸"},
+"仙台支店":{zip:"984-0015",addr:"宮城県仙台市若林区卸町２丁目3−３",tel:"022-217-7311",fax:"022-217-7811",manager:"中村 展久"},
+"東京支店":{zip:"136-8670",addr:"東京都江東区東砂2-14-5",tel:"03-3648-1171",fax:"03-3648-1178",manager:"久保 美隆"},
+"さいたま支店":{zip:"338-0001",addr:"さいたま市緑区美園３丁目23番1号",tel:"048-878-0100",fax:"048-878-0190",manager:"井上 雅仁"},
+"横浜支店":{zip:"194-0004",addr:"東京都町田市鶴間5丁目3番33号",tel:"042-795-8800",fax:"042-788-7019",manager:"佐竹 隆一"},
+"名古屋支店":{zip:"461-0001",addr:"名古屋市東区泉1丁目20番17号",tel:"052-963-0600",fax:"052-963-0601",manager:"高木 照彦"},
+"大阪支店":{zip:"550-0001",addr:"大阪市西区土佐堀2丁目3番33号",tel:"06-6443-8791",fax:"06-6443-9833",manager:"松元 一起"},
+"広島支店":{zip:"733-0834",addr:"広島市西区草津新町2丁目15-17",tel:"082-293-1311",fax:"082-293-1393",manager:"片桐 修"},
+"福岡支店":{zip:"812-0013",addr:"福岡市博多区博多駅東3丁目14番20号",tel:"092-461-1131",fax:"092-461-1138",manager:"木村 博和"}
+};
+
+// 初期化
+window.onload=()=>{
+let sel=document.getElementById("branch");
+for(let k in branches){
+let o=document.createElement("option");
+o.value=k;o.textContent=k;
+sel.appendChild(o);
+}
+setBranch();
+};
+
+// 支店反映
+function setBranch(){
+let b=document.getElementById("branch").value;
+let d=branches[b];
+document.getElementById("manager").value=d.manager;
+document.getElementById("branchInfo").innerHTML=
+`〒${d.zip}<br>${d.addr}<br>TEL:${d.tel}`;
+}
+
+function calc(){
+
+let v=id=>Number(document.getElementById(id).value)||0;
+
+let hospital=document.getElementById("hospital").value;
+let sales=document.getElementById("sales").value;
+
+// ハード
+let hardware=
+v("station")*300000+
+v("tablet")*100000+
+v("bednavi")*30000+
+v("scan")*50000+
+v("box")*5000+
+v("nfc")*300+
+v("line");
+
+// ソフト
+let software=
+v("station")*50000+
+v("tablet")*35000+
+v("bednavi")*30000;
+
+// システム
+let system=v("emr")+v("nurse")+v("server")+v("virus");
+
+let total=Math.round(hardware*1.5+system*1.5+software);
+let tax=Math.round(total*0.1);
+let grand=total+tax;
+
+let today=new Date().toLocaleDateString();
+let number=getEstimateNumber();
+
+let branch=document.getElementById("branch").value;
+let manager=document.getElementById("manager").value;
+let d=branches[branch];
+
+document.getElementById("estimate").innerHTML=`
+
+<div class="header">
+<div><strong>パラマウントベッド株式会社</strong></div>
+<div class="right">
+見積番号：${number}<br>
+見積日：${today}
+</div>
+</div>
+
+<div class="title">御見積書</div>
+
+${hospital} 御中<br>
+営業担当：${sales}
+
+<br><br>
+
+${branch}<br>
+〒${d.zip}<br>
+${d.addr}<br>
+TEL:${d.tel}<br>
+支店長：${manager}
+
+<table>
+<tr><th>項目</th><th>金額</th></tr>
+<tr><td>ハードウェア</td><td class="right">¥${hardware.toLocaleString()}</td></tr>
+<tr><td>システム構築費</td><td class="right">¥${system.toLocaleString()}</td></tr>
+<tr><td>ソフトウェア</td><td class="right">¥${software.toLocaleString()}</td></tr>
+</table>
+
+<table>
+<tr><td>小計</td><td class="right">¥${total.toLocaleString()}</td></tr>
+<tr><td>消費税（10%）</td><td class="right">¥${tax.toLocaleString()}</td></tr>
+<tr class="total"><td>合計</td><td class="right">¥${grand.toLocaleString()}</td></tr>
+</table>
+
+<br>
+保守費（5年）：¥${(v("maintenance")*60).toLocaleString()}
+`;
+}
+
+// PDF（白紙対策＆安定）
+function makePDF(){
+
+  // ★必ず描画更新（白紙防止）
+  calc();
+
+  const el = document.getElementById("estimate");
+
+  // ★元状態保持
+  const originalStyle = {
+    width: el.style.width,
+    marginLeft: el.style.marginLeft,
+    transform: el.style.transform,
+    transformOrigin: el.style.transformOrigin
+  };
+
+  // ★A4に収めるための実測
+  const pxToMm = 0.264583; // px→mm
+  const contentWidthPx = el.scrollWidth;
+  const contentWidthMm = contentWidthPx * pxToMm;
+
+  // A4安全幅（左右余白込み）
+  const safeWidth = 190;
+
+  // ★スケール計算（はみ出る場合のみ縮小）
+  let scale = 1;
+  if(contentWidthMm > safeWidth){
+    scale = safeWidth / contentWidthMm;
+  }
+
+  // ★中央寄せ（ここが左切れ対策の本質）
+  el.style.transform = `scale(${scale})`;
+  el.style.transformOrigin = "top left";
+
+  // ★中央に寄せるための余白計算
+  const offset = (safeWidth - (contentWidthMm * scale)) / 2;
+  el.style.marginLeft = offset + "mm";
+
+  const opt = {
+    margin: [8, 8, 8, 8],
+    filename: "見積書.pdf",
+    image: { type: "jpeg", quality: 1 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      scrollY: 0
+    },
+    jsPDF: {
+      unit: "mm",
+      format: "a4",
+      orientation: "portrait"
+    },
+    pagebreak: {
+      mode: ["avoid-all", "css", "legacy"]
+    }
+  };
+
+  html2pdf()
+    .set(opt)
+    .from(el)
+    .save()
+    .then(() => {
+      // ★元に戻す
+      el.style.width = originalStyle.width;
+      el.style.marginLeft = originalStyle.marginLeft;
+      el.style.transform = originalStyle.transform;
+      el.style.transformOrigin = originalStyle.transformOrigin;
+    });
+
+}
+
 </script>
 
 </body>
