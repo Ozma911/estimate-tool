@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>概算見積ツール</title>
+<style>
+body { font-family: sans-serif; padding: 20px; }
+input, select, button { width: 100%; padding: 10px; margin-top: 10px; }
+.result { margin-top: 20px; font-size: 18px; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h2>概算見積ツール</h2>
+
+<label>ステーション端末台数</label>
+<input type="number" id="station" value="0">
+
+<label>タブレット台数</label>
+<input type="number" id="tablet" value="0">
+
+<label>ベッドナビ台数</label>
+<input type="number" id="bednavi" value="0">
+
+<label>眠りSCAN台数</label>
+<input type="number" id="scan" value="0">
+
+<label>接続ボックス台数</label>
+<input type="number" id="box" value="0">
+
+<label>電子カルテ連携</label>
+<select id="emr">
+<option value="0">ナシ</option>
+<option value="5000000">アリ</option>
+</select>
+
+<label>ナースコール連携</label>
+<select id="nurse">
+<option value="0">ナシ</option>
+<option value="600000">アリ</option>
+</select>
+
+<label>サーバ環境</label>
+<select id="server">
+<option value="10300000">物理（830万＋ライセンス200万）</option>
+<option value="5000000">仮想（300万＋ライセンス200万）</option>
+<option value="18600000">物理冗長（1660万＋ライセンス200万）</option>
+</select>
+
+<label>保守費（月額）</label>
+<select id="maintenance">
+<option value="500000">500,000</option>
+<option value="350000">350,000</option>
+<option value="200000">200,000</option>
+<option value="100000">100,000</option>
+<option value="50000">50,000</option>
+</select>
+
+<label>ウィルスソフト</label>
+<select id="virus">
+<option value="0">ナシ</option>
+<option value="5000000">アリ</option>
+</select>
+
+<label>NFCカード枚数</label>
+<input type="number" id="nfc" value="0">
+
+<label>保守回線新設</label>
+<select id="line">
+<option value="0">ナシ</option>
+<option value="130000">アリ</option>
+</select>
+
+<button onclick="calc()">計算</button>
+
+<div class="result" id="result"></div>
+
+<script>
+function calc() {
+
+  let station = Number(document.getElementById("station").value);
+  let tablet = Number(document.getElementById("tablet").value);
+  let bednavi = Number(document.getElementById("bednavi").value);
+  let scan = Number(document.getElementById("scan").value);
+  let box = Number(document.getElementById("box").value);
+
+  let emr = Number(document.getElementById("emr").value);
+  let nurse = Number(document.getElementById("nurse").value);
+  let server = Number(document.getElementById("server").value);
+  let maintenance = Number(document.getElementById("maintenance").value);
+  let virus = Number(document.getElementById("virus").value);
+  let nfc = Number(document.getElementById("nfc").value);
+  let line = Number(document.getElementById("line").value);
+
+  // 本体費用
+  let totalBase =
+    station * 300000 +
+    tablet * 100000 +
+    bednavi * 30000 +
+    scan * 50000 +
+    box * 5000 +
+    emr +
+    nurse +
+    server +
+    virus +
+    (nfc * 300) +
+    line;
+
+  // ライセンス費用
+  let license =
+    station * 50000 +
+    tablet * 35000 +
+    bednavi * 30000;
+
+  // 保守費（5年）
+  let maintenanceTotal = maintenance * 60;
+
+  // 利益45%乗せ
+  let total = Math.round((totalBase + license) * 1.45);
+
+  document.getElementById("result").innerHTML =
+    "総額（利益45%込）：" + total.toLocaleString() + " 円<br>" +
+    "ライセンス費用：" + license.toLocaleString() + " 円<br>" +
+    "保守費（5年/60か月）：" + maintenanceTotal.toLocaleString() + " 円";
+}
+</script>
+
+</body>
+</html>
