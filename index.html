@@ -270,31 +270,47 @@ async function makePDF(){
 
   const el = document.getElementById("estimate");
 
-  // ★ラッパー作成（中央配置の本体）
-  const wrapper = document.createElement("div");
-  wrapper.style.width = "794px";           // A4基準幅
-  wrapper.style.margin = "0 auto";         // ★中央寄せ
-  wrapper.style.background = "#fff";
-
-  // ★複製（元を壊さない）
+  // ★クローン（元を絶対に触らない）
   const clone = el.cloneNode(true);
 
-  wrapper.appendChild(clone);
-  document.body.appendChild(wrapper);
+  // ★一時コンテナ（画面外）
+  const container = document.createElement("div");
+  container.style.position = "fixed";
+  container.style.left = "-9999px";
+  container.style.top = "0";
+  container.style.width = "1200px"; // ★広めに確保（ここ重要）
+  container.appendChild(clone);
+  document.body.appendChild(container);
 
-  // ★描画待機（スマホ必須）
+  // ★描画待機
   await new Promise(r => setTimeout(r, 100));
 
+  // ★実サイズ取得
+  const contentWidth = clone.scrollWidth;
+  const contentHeight = clone.scrollHeight;
+
+  // A4サイズ（mm→px換算目安）
+  const A4_WIDTH = 794;   // 縦
+  const A4_HEIGHT = 1123;
+
+  // ★スケール計算（縦横どちらも収める）
+  const scaleX = A4_WIDTH / contentWidth;
+  const scaleY = A4_HEIGHT / contentHeight;
+  const scale = Math.min(scaleX, scaleY);
+
+  // ★縮小適用
+  clone.style.transform = `scale(${scale})`;
+  clone.style.transformOrigin = "top left";
+
   const opt = {
-    margin: [8,8,8,8],
+    margin: 0,
     filename: "見積書.pdf",
     image: { type: "jpeg", quality: 1 },
 
     html2canvas: {
       scale: 2,
       useCORS: true,
-      scrollY: 0,
-      windowWidth: 794
+      scrollY: 0
     },
 
     jsPDF: {
@@ -306,10 +322,9 @@ async function makePDF(){
     pagebreak: { mode: ["avoid-all"] }
   };
 
-  await html2pdf().set(opt).from(wrapper).save();
+  await html2pdf().set(opt).from(clone).save();
 
-  // ★後処理（必ず消す）
-  document.body.removeChild(wrapper);
+  document.body.removeChild(container);
 }
   
 </script>
