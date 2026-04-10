@@ -266,72 +266,43 @@ TEL:${d.tel}<br>
 // PDF（白紙対策＆安定）
 function makePDF(){
 
-  // ★必ず描画更新（白紙防止）
   calc();
 
   const el = document.getElementById("estimate");
 
-  // ★元状態保持
-  const originalStyle = {
-    width: el.style.width,
-    marginLeft: el.style.marginLeft,
-    transform: el.style.transform,
-    transformOrigin: el.style.transformOrigin
-  };
+  // ★強制的にPC幅でレンダリング
+  const originalStyle = el.style.cssText;
 
-  // ★A4に収めるための実測
-  const pxToMm = 0.264583; // px→mm
-  const contentWidthPx = el.scrollWidth;
-  const contentWidthMm = contentWidthPx * pxToMm;
-
-  // A4安全幅（左右余白込み）
-  const safeWidth = 190;
-
-  // ★スケール計算（はみ出る場合のみ縮小）
-  let scale = 1;
-  if(contentWidthMm > safeWidth){
-    scale = safeWidth / contentWidthMm;
-  }
-
-  // ★中央寄せ（ここが左切れ対策の本質）
-  el.style.transform = `scale(${scale})`;
-  el.style.transformOrigin = "top left";
-
-  // ★中央に寄せるための余白計算
-  const offset = (safeWidth - (contentWidthMm * scale)) / 2;
-  el.style.marginLeft = offset + "mm";
+  el.style.width = "794px";   // ← A4相当（超重要）
+  el.style.margin = "0";
+  el.style.transform = "none";
 
   const opt = {
-    margin: [8, 8, 8, 8],
+    margin: [8,8,8,8],
     filename: "見積書.pdf",
     image: { type: "jpeg", quality: 1 },
     html2canvas: {
       scale: 2,
       useCORS: true,
-      scrollY: 0
+      scrollY: 0,
+      windowWidth: 794,   // ★これがスマホ対策の核
     },
     jsPDF: {
       unit: "mm",
       format: "a4",
       orientation: "portrait"
     },
-    pagebreak: {
-      mode: ["avoid-all", "css", "legacy"]
-    }
+    pagebreak: { mode: ["avoid-all"] }
   };
 
   html2pdf()
     .set(opt)
     .from(el)
     .save()
-    .then(() => {
-      // ★元に戻す
-      el.style.width = originalStyle.width;
-      el.style.marginLeft = originalStyle.marginLeft;
-      el.style.transform = originalStyle.transform;
-      el.style.transformOrigin = originalStyle.transformOrigin;
+    .then(()=>{
+      // 元に戻す
+      el.style.cssText = originalStyle;
     });
-
 }
 
 </script>
