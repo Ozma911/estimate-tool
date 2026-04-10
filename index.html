@@ -270,41 +270,46 @@ async function makePDF(){
 
   const el = document.getElementById("estimate");
 
+  // ★ラッパー作成（中央配置の本体）
+  const wrapper = document.createElement("div");
+  wrapper.style.width = "794px";           // A4基準幅
+  wrapper.style.margin = "0 auto";         // ★中央寄せ
+  wrapper.style.background = "#fff";
+
+  // ★複製（元を壊さない）
+  const clone = el.cloneNode(true);
+
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
+
+  // ★描画待機（スマホ必須）
   await new Promise(r => setTimeout(r, 100));
-
-  const original = {
-    width: el.style.width,
-    margin: el.style.margin,
-    transform: el.style.transform
-  };
-
-  el.style.width = "794px";
-  el.style.margin = "0";
-  el.style.transform = "none";
 
   const opt = {
     margin: [8,8,8,8],
     filename: "見積書.pdf",
     image: { type: "jpeg", quality: 1 },
+
     html2canvas: {
       scale: 2,
       useCORS: true,
       scrollY: 0,
       windowWidth: 794
     },
+
     jsPDF: {
       unit: "mm",
       format: "a4",
       orientation: "portrait"
     },
+
     pagebreak: { mode: ["avoid-all"] }
   };
 
-  await html2pdf().set(opt).from(el).save();
+  await html2pdf().set(opt).from(wrapper).save();
 
-  el.style.width = original.width;
-  el.style.margin = original.margin;
-  el.style.transform = original.transform;
+  // ★後処理（必ず消す）
+  document.body.removeChild(wrapper);
 }
   
 </script>
