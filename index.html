@@ -264,16 +264,21 @@ TEL:${d.tel}<br>
 }
 
 // PDF（白紙対策＆安定）
-function makePDF(){
+async function makePDF(){
 
   calc();
 
   const el = document.getElementById("estimate");
 
-  // ★強制的にPC幅でレンダリング
-  const originalStyle = el.style.cssText;
+  await new Promise(r => setTimeout(r, 100));
 
-  el.style.width = "794px";   // ← A4相当（超重要）
+  const original = {
+    width: el.style.width,
+    margin: el.style.margin,
+    transform: el.style.transform
+  };
+
+  el.style.width = "794px";
   el.style.margin = "0";
   el.style.transform = "none";
 
@@ -285,7 +290,7 @@ function makePDF(){
       scale: 2,
       useCORS: true,
       scrollY: 0,
-      windowWidth: 794,   // ★これがスマホ対策の核
+      windowWidth: 794
     },
     jsPDF: {
       unit: "mm",
@@ -295,16 +300,13 @@ function makePDF(){
     pagebreak: { mode: ["avoid-all"] }
   };
 
-  html2pdf()
-    .set(opt)
-    .from(el)
-    .save()
-    .then(()=>{
-      // 元に戻す
-      el.style.cssText = originalStyle;
-    });
-}
+  await html2pdf().set(opt).from(el).save();
 
+  el.style.width = original.width;
+  el.style.margin = original.margin;
+  el.style.transform = original.transform;
+}
+  
 </script>
 
 </body>
